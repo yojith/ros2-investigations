@@ -29,8 +29,8 @@ jobs:
             bash -c '
               set -e
               source /opt/ros/jazzy/setup.bash
-              colcon build --package-select my-package
-              colcon test --package-select my-package
+              colcon build --packages-select my-package
+              colcon test --packages-select my-package
               colcon test-result --all --verbose
             '
 
