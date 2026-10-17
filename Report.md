@@ -50,3 +50,4 @@ Look into automating the whole CI/CD pipeline using something like GitHub action
 2. Since we are using a Docker image, we must first build the image using `docker build -t <image_name> -f <dockerfile_path> .`
 3. We can run the docker image while passing in our bash commands using `docker run --rm -v "${{ github.workspace }}:/workspace" <image_name> bash -c "<commands>"`. --rm removes the container after the commands are run, and -v puts the current checked out workspace into the docker container.
 4. The produced XML test results can generate reports using strictdoc.
+5. Note, with GitLab CI, we can reuse built docker images for subsequent jobs without having to rebuild the image, if they run on a private hosted server. This would cut down on build times and potentially make CI faster.
