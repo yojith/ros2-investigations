@@ -1,0 +1,41 @@
+
+name: ROS2 CI
+
+on:
+  push: 
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker
+        run: docker build -t ros2-ci -f .devcontainer/Dockerfile
+
+      - name: Build and test ROS2
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            ros2-ci \
+            bash -c '
+              set -e
+              source /opt/ros/jazzy/setup.bash
+              colcon build --package-select my-package
+              colcon test --package-select my-package
+              colcon test-result --all --verbose
+            '
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: build/my-package/test_results/my_package/
