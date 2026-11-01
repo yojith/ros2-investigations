@@ -9,23 +9,25 @@ import launch_testing.actions
 import launch_testing.asserts
 import rclpy
 
+
 def generate_test_description():
     return (
         launch.LaunchDescription(
             [
-                # Nodes under test
+                # Nodes under test. Change the template text
                 launch_ros.actions.Node(
-                    package='package_name',
-                    namespace='',
-                    executable='executable_name',
-                    name='node_name',
+                    package="<package_name>",
+                    namespace="",
+                    executable="<executable_name>",
+                    name="<node_name>",
                 ),
                 # Launch tests 0.5 s later
-                launch.actions.TimerAction(
-                    period=0.5, actions=[launch_testing.actions.ReadyToTest()]),
+                launch.actions.TimerAction(period=0.5, actions=[launch_testing.actions.ReadyToTest()]),
             ]
-        ), {},
+        ),
+        {},
     )
+
 
 # Active tests
 class Tests(unittest.TestCase):
@@ -38,13 +40,14 @@ class Tests(unittest.TestCase):
         rclpy.shutdown()
 
     def setUp(self):
-        self.node = rclpy.create_node('test_square')
+        self.node = rclpy.create_node("test_square")
 
     def tearDown(self):
         self.node.destroy_node()
 
     def test_name(self):
         pass
+
 
 # Post-shutdown tests
 @launch_testing.post_shutdown_test()

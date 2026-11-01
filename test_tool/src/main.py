@@ -90,7 +90,7 @@ def setup_cmake(path: Path, kind: str) -> None:
     path.write_text(content)
 
 
-def register_cmake(path: Path, kind: str, name: str, test_path: Path) -> bool:
+def register_cmake(path: Path, kind: str, name: str, test_path: Path, links: list[str]) -> bool:
     """Register test in CMakeLists.txt
 
     Args:
@@ -106,7 +106,18 @@ def register_cmake(path: Path, kind: str, name: str, test_path: Path) -> bool:
     generated.parent.mkdir(exist_ok=True)
 
     # Add the registration command based on gtest or pytest
-    registration = f"ament_add_gtest(${{PROJECT_NAME}}_{name} {test_path})" if kind == "gtest" else f"add_ros_isolated_launch_test({test_path})"
+    if kind == "gtest":
+        target = f"${{PROJECT_NAME}}_{name}"
+        sources = " ".join([str(test_path)] + links)
+
+        registration = (
+            f"ament_add_gtest({target} {sources})\n"
+            f"target_include_directories({target} PUBLIC\n"
+            f"  $<BUILD_INTERFACE:${{CMAKE_CURRENT_SOURCE_DIR}}/include>\n"
+            f"  $<INSTALL_INTERFACE:include/${{PROJECT_NAME}}>)"
+        )
+    else:
+        registration = f"add_ros_isolated_launch_test({test_path})"
 
     if generated.exists() and registration in generated.read_text():
         return False
@@ -122,10 +133,11 @@ def main():
     parser.add_argument("type", choices=["gtest", "pytest"])
     parser.add_argument("name", help="Name of the test. Use test_<name> for pytest and <name>_test for gtest")
     parser.add_argument("--package-dir", type=Path, default=Path.cwd(), help="Path to the ROS2 package directory. Defaults to current working directory.")
+    parser.add_argument("--link", help="Comma-separated C++ source files to compile with the test")
     args = parser.parse_args()
 
-    if args.name.contains(" ") or args.name.contains("/") or args.name.contains("\\"):
-        raise ValueError("Test name cannot contain spaces or slashes")
+    if " " in args.name or "/" in args.name or "\\" in args.name:
+        parser.error("Test name cannot contain spaces or slashes")
 
     # Setup paths for all package.xml, CMakeLists.txt, and test file
     package: Path = args.package_dir
@@ -135,13 +147,15 @@ def main():
     extension = ".cpp" if args.type == "gtest" else ".py"
     test_path = package / f"test/{args.name}{extension}"
 
+    links = args.link.split(",") if args.link else []
+
     if not test_path.exists():
         template = Path(__file__).parent / f"template{extension}"
         copy(template, test_path)
 
     add_package_xml_dependencies(xml, XML_DEPS[args.type])
     setup_cmake(cmake, args.type)
-    register_cmake(cmake, args.type, args.name, test_path.relative_to(package))
+    register_cmake(cmake, args.type, args.name, test_path.relative_to(package), links)
 
     print(f"Created/registered {test_path}")
 
